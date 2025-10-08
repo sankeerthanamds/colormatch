@@ -56,6 +56,12 @@
         <p class="text-center text-gray-500">
             Upload an image, then **click on any pixel** to find its closest match from the gum palette.
         </p>
+        
+        <!-- NEW IMPORTANT NOTE -->
+        <div class="p-3 bg-yellow-50 border border-yellow-200 text-sm text-yellow-800 rounded-lg">
+            <p class="font-medium">⚠️ Important Note:</p>
+            <p>This tool is specialized for matching colors against the limited "gum shade" palette (G1-G5). Results are optimized for these specific color tones and may not provide the closest match for general web colors.</p>
+        </div>
 
         <!-- Image Upload Area -->
         <label for="fileInput" class="custom-file-upload rounded-lg">
@@ -83,14 +89,14 @@
             <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
                 <h3 class="text-lg font-medium text-gray-600 mb-2">Picked Pixel Color:</h3>
                 <div id="averageColorDisplay" class="h-12 w-full rounded-md border border-gray-200" style="background-color: #ccc;"></div>
-                <!-- This will now display the generated common color name -->
+                <!-- This displays the generated common color name (e.g., "Dark Red") -->
                 <p id="averageColorText" class="text-center mt-2 font-mono text-xl font-semibold text-gray-800">Picked Color Value</p>
             </div>
 
             <div class="bg-pink-50 p-4 rounded-lg shadow-inner border-2 border-pink-200">
                 <h3 class="text-lg font-bold text-pink-700 mb-2">Closest Palette Match:</h3>
                 <div id="matchColorDisplay" class="h-16 w-full rounded-lg shadow-lg transform transition-all duration-300 hover:scale-[1.02]" style="background-color: #fffafa;"></div>
-                <!-- Displays the specific gum shade name -->
+                <!-- Displays the specific gum shade name (e.g., "G1 Rose/Dusky Pink") -->
                 <p id="matchColorText" class="text-center mt-3 text-2xl font-extrabold text-pink-600">G1 Rose/Dusky Pink</p>
             </div>
         </div>
@@ -112,19 +118,47 @@
             { hex: "#3C000B", name: "G5 Cherry Brown/Black-Red" }    // Very Dark Black-Red
         ];
 
-        // Simplified list of named colors for approximating the clicked pixel's hue
+        // Expanded list of named colors for approximating the clicked pixel's hue.
+        // This list now includes a wide range of distinct colors across the RGB spectrum 
+        // (including Dark, Light, and Muted variants) to provide more accurate descriptive naming
+        // for all hues (Red, Green, Blue, Yellow, etc.).
         const WEB_COLORS = [
+            // Primary & Pure Hues
             { r: 255, g: 0, b: 0, name: "Red" },
             { r: 0, g: 128, b: 0, name: "Green" },
             { r: 0, g: 0, b: 255, name: "Blue" },
             { r: 255, g: 255, b: 0, name: "Yellow" },
             { r: 255, g: 165, b: 0, name: "Orange" },
             { r: 128, g: 0, b: 128, name: "Purple" },
-            { r: 255, g: 192, b: 203, name: "Pink" },
+            { r: 255, g: 0, b: 255, name: "Magenta" },
+            { r: 0, g: 255, b: 255, name: "Cyan" },
+
+            // Red/Brown/Pink Variations
+            { r: 128, g: 0, b: 0, name: "Maroon" },
             { r: 165, g: 42, b: 42, name: "Brown" },
-            { r: 0, g: 0, b: 0, name: "Black" },
+            { r: 220, g: 20, b: 60, name: "Crimson" },
+            { r: 255, g: 192, b: 203, name: "Pink" },
+            { r: 219, g: 112, b: 147, name: "Deep Pink" },
+            
+            // Green/Yellow Variations
+            { r: 85, g: 107, b: 47, name: "Olive" }, // Darker, earthier green
+            { r: 0, g: 100, b: 0, name: "Dark Green" },
+            { r: 50, g: 205, b: 50, name: "Lime Green" },
+            { r: 64, g: 224, b: 208, name: "Turquoise" }, // Blue-Green
+            { r: 0, g: 128, b: 128, name: "Teal" }, // Dark Cyan
+
+            // Blue/Purple Variations
+            { r: 75, g: 0, b: 130, name: "Indigo" }, // Dark Blue/Purple
+            { r: 238, g: 130, b: 238, name: "Violet" }, // Lighter Purple
+            { r: 70, g: 130, b: 180, name: "Steel Blue" },
+            { r: 173, g: 216, b: 230, name: "Light Blue" },
+            
+            // Neutrals
             { r: 255, g: 255, b: 255, name: "White" },
-            { r: 128, g: 128, b: 128, name: "Gray" }
+            { r: 0, g: 0, b: 0, name: "Black" },
+            { r: 192, g: 192, b: 192, name: "Silver" }, // Light Gray
+            { r: 128, g: 128, b: 128, name: "Gray" }, // Medium Gray
+            { r: 105, g: 105, b: 105, name: "Dim Gray" } // Darker Gray
         ];
         
         const fileInput = document.getElementById('fileInput');
@@ -201,24 +235,31 @@
             }
 
             // Apply light/dark prefix for better description
+            // Calculate perceived brightness (luminance)
             const brightness = (pickedRgb.r * 299 + pickedRgb.g * 587 + pickedRgb.b * 114) / 1000;
             
-            if (closestName !== "Black" && closestName !== "White" && closestName !== "Gray") {
-                if (brightness < 60) {
-                    return "Very Dark " + closestName;
-                } else if (brightness < 120) {
-                    return "Dark " + closestName;
-                } else if (brightness > 220) {
-                    return "Light " + closestName;
-                }
+            // Check if the color is mostly achromatic (gray scale)
+            const isAchromatic = Math.abs(pickedRgb.r - pickedRgb.g) < 20 && 
+                                 Math.abs(pickedRgb.r - pickedRgb.b) < 20 && 
+                                 Math.abs(pickedRgb.g - pickedRgb.b) < 20;
+
+            if (isAchromatic) {
+                if (brightness < 40) return "Black";
+                if (brightness > 220) return "White";
+                if (brightness < 100) return "Dark Gray";
+                return "Light Gray";
             }
             
-            // Handle neutrals
-            if (closestName === "Gray") {
-                if (brightness < 80) return "Dark Gray";
-                if (brightness > 180) return "Light Gray";
+            // Apply modifiers for chromatic colors
+            if (brightness < 60) {
+                return "Very Dark " + closestName;
+            } else if (brightness < 120) {
+                return "Dark " + closestName;
+            } else if (brightness > 200) {
+                return "Pale " + closestName;
+            } else if (brightness > 160) {
+                return "Light " + closestName;
             }
-            if (closestName === "Black" && brightness > 50) return "Very Dark Gray";
             
             return closestName;
         }
@@ -296,9 +337,9 @@
                 };
                 const pickedHex = rgbToHex(pickedRgb);
                 
-                // --- NEW: Get the common name for the picked pixel color ---
+                // --- Get the common name for the picked pixel color ---
                 const pickedColorName = getClosestWebColorName(pickedRgb);
-                // -----------------------------------------------------------
+                // -----------------------------------------------------
 
                 // Find Closest Match (now returns name and hex)
                 const match = findClosestColor(pickedRgb, PALETTE);
