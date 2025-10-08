@@ -89,8 +89,8 @@
             <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
                 <h3 class="text-lg font-medium text-gray-600 mb-2">Picked Pixel Color:</h3>
                 <div id="averageColorDisplay" class="h-12 w-full rounded-md border border-gray-200" style="background-color: #ccc;"></div>
-                <!-- This displays the generated common color name (e.g., "Dark Red") -->
-                <p id="averageColorText" class="text-center mt-2 font-mono text-xl font-semibold text-gray-800">Picked Color Value</p>
+                <!-- This displays the generated common color name (e.g., "Dark Red") AND the Hex/RGB values -->
+                <p id="averageColorText" class="text-center mt-2 font-mono text-base font-semibold text-gray-800">Picked Color Value</p>
             </div>
 
             <div class="bg-pink-50 p-4 rounded-lg shadow-inner border-2 border-pink-200">
@@ -238,30 +238,38 @@
             // Calculate perceived brightness (luminance)
             const brightness = (pickedRgb.r * 299 + pickedRgb.g * 587 + pickedRgb.b * 114) / 1000;
             
-            // Check if the color is mostly achromatic (gray scale)
-            const isAchromatic = Math.abs(pickedRgb.r - pickedRgb.g) < 20 && 
-                                 Math.abs(pickedRgb.r - pickedRgb.b) < 20 && 
-                                 Math.abs(pickedRgb.g - pickedRgb.b) < 20;
+            // Tighter check for achromatic colors (delta reduced from 20 to 15)
+            const ACHROMATIC_THRESHOLD = 15; 
+            const isAchromatic = Math.abs(pickedRgb.r - pickedRgb.g) < ACHROMATIC_THRESHOLD && 
+                                 Math.abs(pickedRgb.r - pickedRgb.b) < ACHROMATIC_THRESHOLD && 
+                                 Math.abs(pickedRgb.g - pickedRgb.b) < ACHROMATIC_THRESHOLD;
 
             if (isAchromatic) {
-                if (brightness < 40) return "Black";
-                if (brightness > 220) return "White";
+                // If the color is very near pure black or pure white, stick to those names.
+                if (brightness < 20) return "Black"; 
+                if (brightness > 235) return "White"; 
+                
+                // Otherwise, it's a shade of gray, regardless of the closest hue (like "Light Blue")
                 if (brightness < 100) return "Dark Gray";
                 return "Light Gray";
             }
             
-            // Apply modifiers for chromatic colors
+            // Apply modifiers for chromatic colors (colors with clear hue)
             if (brightness < 60) {
                 return "Very Dark " + closestName;
             } else if (brightness < 120) {
                 return "Dark " + closestName;
-            } else if (brightness > 200) {
+            } else if (brightness > 220) {
+                // For extremely bright, slightly tinted colors
+                return "Ultra Pale " + closestName;
+            } else if (brightness > 180) {
                 return "Pale " + closestName;
-            } else if (brightness > 160) {
+            } else if (brightness > 140) {
                 return "Light " + closestName;
             }
             
-            return closestName;
+            // Default to Medium for mid-range saturation/brightness
+            return "Medium " + closestName;
         }
 
 
@@ -346,8 +354,8 @@
 
                 // Update Results UI
                 averageColorDisplay.style.backgroundColor = pickedHex;
-                // Display the generated common name for the picked color
-                averageColorText.textContent = pickedColorName;
+                // Display the generated common name and the exact color values
+                averageColorText.textContent = `${pickedColorName} (${pickedHex} / RGB ${pickedRgb.r},${pickedRgb.g},${pickedRgb.b})`;
                 
                 matchColorDisplay.style.backgroundColor = match.hex;
                 // Update text to show ONLY the specific gum shade name
